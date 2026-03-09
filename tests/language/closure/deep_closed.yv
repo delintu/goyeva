@@ -1,0 +1,8 @@
+var f;
+{
+  const i = 0;
+  f = function {
+    return function => i;
+  }();
+}
+print(f()); # out: 0

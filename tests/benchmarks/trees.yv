@@ -1,0 +1,33 @@
+const Tree = struct {
+  ->walk() {
+    if (self.depth == 0) return 0;
+    return self.depth +
+      self.a->walk() +
+      self.b->walk() +
+      self.c->walk() +
+      self.d->walk() +
+      self.e->walk();
+  }
+}
+
+function newTree(depth) {
+  const self = struct { .depth, Tree... };
+  if (depth > 0) {
+    self.a = newTree(depth - 1);
+    self.b = newTree(depth - 1);
+    self.c = newTree(depth - 1);
+    self.d = newTree(depth - 1);
+    self.e = newTree(depth - 1);
+  }
+  return self;
+}
+
+const tree = newTree(8);
+
+const start = clock();
+
+for (var i = 0; i < 100; i++) {
+  if (tree->walk() != 122_068) throw "error";
+}
+
+print(clock() - start);

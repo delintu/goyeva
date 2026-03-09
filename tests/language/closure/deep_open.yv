@@ -1,0 +1,5 @@
+const i = 0;
+function f {
+  return function => i;
+}
+print(f()()); # out: 0

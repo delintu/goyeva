@@ -1,0 +1,7 @@
+/bin
+/bench
+/*.yv
+/*.yeva
+!/tests/**/*.yv
+!/tests/**/*.yeva
+__pycache__

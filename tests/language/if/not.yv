@@ -1,0 +1,6 @@
+const condition = true;
+if !(condition) {
+  print("bad");
+} else {
+  print("good"); # out: good
+}

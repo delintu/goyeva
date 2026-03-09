@@ -1,0 +1,27 @@
+function div(a, b) {
+  if (b == 0) throw "divizion by zero";
+  var c;
+  c = a / b;
+  return c;
+}
+
+const logger = struct {
+  ._prefix = "[06:21]",
+  .log(self, obj) => log(self._prefix, obj),
+  .ho => print("ho"),
+};
+
+loop: for (var i = 0; i < 10; i++) {
+  logger->log(i);
+  if (i % 2) continue loop;
+}
+
+3.14 ? catch div(2, 0) : struct { 1, 2, 3, void };
+
+const add = function (a, b) => a + b;
+
+function hello {
+  const msg = "Hello,\n" +
+    "\tworld!\n";
+  print(msg);
+}

@@ -1,0 +1,3 @@
+const i = 0;
+function f => i;
+print(f()); # out: 0
