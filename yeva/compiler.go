@@ -690,6 +690,8 @@ func (c *compiler) led() parse_func {
 		return c.parse_or
 	case lx_amper_amper: // && and
 		return c.parse_and
+	case lx_quest_quest: // ??
+		return c.parse_nihillish
 	case lx_quest: // ? then
 		return c.parse_then
 	case lx_lparen: // (
@@ -1043,6 +1045,10 @@ func (c *compiler) assign(set, get, getnp func(), can_assign bool) {
 			getnp()
 			c.parse_and(false)
 			set()
+		case c.step_on(lx_quest_quest_equal):
+			getnp()
+			c.parse_nihillish(false)
+			set()
 		default:
 			get()
 		}
@@ -1248,7 +1254,8 @@ var precedences = map[lx_type]precedence{
 
 	lx_quest: prec_tern, // ? :
 
-	lx_pipe_pipe: prec_lor, // ||
+	lx_pipe_pipe:   prec_lor, // ||
+	lx_quest_quest: prec_lor, // ??
 
 	lx_amper_amper: prec_land, // &&
 

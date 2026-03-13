@@ -277,12 +277,14 @@ var duo = map[[2]byte]lx_type{
 	{'&', '='}: lx_amper_equal,
 	{'|', '|'}: lx_pipe_pipe,
 	{'&', '&'}: lx_amper_amper,
+	{'?', '?'}: lx_quest_quest,
 }
 
 var trio = map[[3]byte]lx_type{
 	{'.', '.', '.'}: lx_dot_dot_dot,
 	{'|', '|', '='}: lx_pipe_pipe_equal,
 	{'&', '&', '='}: lx_amper_amper_equal,
+	{'?', '?', '='}: lx_quest_quest_equal,
 	{'<', '<', '='}: lx_langle_langle_equal,
 	{'>', '>', '='}: lx_rangle_rangle_equal,
 }

@@ -60,9 +60,11 @@ const (
 
 	lx_pipe_pipe   lx_type = "||"
 	lx_amper_amper lx_type = "&&"
+	lx_quest_quest lx_type = "??"
 
 	lx_pipe_pipe_equal   lx_type = "||="
 	lx_amper_amper_equal lx_type = "&&="
+	lx_quest_quest_equal lx_type = "??="
 
 	lx_dot_dot_dot lx_type = "..."
 

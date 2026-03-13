@@ -1,7 +1,7 @@
 function assert(actual, expected, message) {
-  expected = expected != void ? expected : true;
+  expected ??= true;
   if (actual == expected) return;
-  throw message || "assertion failed";
+  throw message ?? "assertion failed";
 }
 
 return assert;
