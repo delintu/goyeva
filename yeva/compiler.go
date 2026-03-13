@@ -42,6 +42,9 @@ func (c *compiler) decl() {
 		case c.check_next(lx_name) &&
 			c.step_on(lx_function):
 			c.function_decl()
+		case c.check_next(lx_name) &&
+			c.step_on(lx_struct):
+			c.structure_decl()
 		case c.step_on(lx_variable):
 			c.multiline_decl(c.variable_decl)
 		case c.step_on(lx_constant):
@@ -107,6 +110,11 @@ func (c *compiler) function_decl() {
 	if c.named_function(c.previous.literal, false) {
 		c.expect_semi()
 	}
+}
+
+func (c *compiler) structure_decl() {
+	c.define_variable(c.declare_variable(false))
+	c.parse_structure(false)
 }
 
 func (c *compiler) stmt() {
@@ -539,12 +547,13 @@ func (c *compiler) parse_string(can_assign bool) {
 }
 
 func (c *compiler) parse_structure(can_assign bool) {
+	if c.step_on(lx_lparen) {
+		c.expr(false)
+		c.expect(lx_rparen)
+	} else {
+		c.emit_value(yv_nihil{})
+	}
 	c.emit(op_structure)
-	// if c.step_on(lx_lparen) {
-	// 	c.expr(false)
-	// 	c.emit(op_prototype)
-	// 	c.expect(lx_rparen)
-	// }
 	c.expect(lx_lbrace)
 	c.struct_body()
 }

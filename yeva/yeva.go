@@ -33,7 +33,7 @@ func (y *Yeva) PushNihil()           { y.push(yv_nihil{}) }
 func (y *Yeva) PushBoolean(b bool)   { y.push(yv_boolean(b)) }
 func (y *Yeva) PushNumber(n float64) { y.push(yv_number(n)) }
 func (y *Yeva) PushString(s string)  { y.push(yv_string(s)) }
-func (y *Yeva) PushNewStructure()    { y.push(new_structure()) }
+func (y *Yeva) PushNewStructure()    { y.push(new_structure(yv_nihil{})) }
 
 func (y *Yeva) IsNihil() bool     { return is[yv_nihil](y.peek1()) }
 func (y *Yeva) IsBoolean() bool   { return is[yv_boolean](y.peek1()) }

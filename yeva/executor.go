@@ -164,7 +164,7 @@ func (e *executor) call_closure(
 func (e *executor) balance_args(argc int, paramc int, vararg bool) {
 	var varg *yv_structure
 	if vararg {
-		varg = new_structure()
+		varg = new_structure(yv_nihil{})
 	}
 	if argc <= paramc {
 		for range paramc - argc {
@@ -332,7 +332,7 @@ func (e *executor) execute(cls *yv_closure) {
 		case op_end_catch:
 			slice_pop(&e.catch_handlers)
 			v := e.pop()
-			r := new_structure()
+			r := new_structure(yv_nihil{})
 			r.store(key_result, v)
 			e.push(r)
 		case op_throw:
@@ -408,9 +408,14 @@ func (e *executor) execute(cls *yv_closure) {
 			fr.undefine_local()
 			e.pop()
 		case op_structure:
-			e.push(new_structure())
-		case op_prototype:
-			panic(unreachable)
+			v := e.pop()
+			if p, ok := v.(struct_proto); !ok {
+				e.pushf("can't use %s as structure prototype", v.typeof())
+				goto unwind
+
+			} else {
+				e.push(new_structure(p))
+			}
 		case op_define_key:
 			v := e.pop()
 			k := e.pop()
@@ -541,7 +546,7 @@ func (e *executor) execute(cls *yv_closure) {
 			e.runtime_error("uncaught: %s", fmt_value(v))
 			return
 		}
-		r := new_structure()
+		r := new_structure(yv_nihil{})
 		r.store(key_catched, v)
 		e.push(r)
 	}

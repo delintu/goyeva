@@ -38,8 +38,7 @@ const (
 	op_closure       // [1] +1
 	op_close_upvalue // [0] -1
 
-	op_structure // [0] +1
-	op_prototype // [0] -1
+	op_structure // [0] +0
 
 	op_define_key        // [0] -2
 	op_define_key_spread // [0] -1
@@ -111,7 +110,6 @@ var op_names = [...]string{
 	op_close_upvalue: "close_upvalue",
 
 	op_structure: "structure",
-	op_prototype: "prototype",
 
 	op_define_key:        "define_key",
 	op_define_key_spread: "define_key_spread",
@@ -181,7 +179,7 @@ func log_opcode(f *fn_proto, offset int) int {
 		op_copy_to, op_copy_from,
 		op_define_mutable, op_define, op_undefine,
 		op_close_upvalue,
-		op_structure, op_prototype,
+		op_structure,
 		op_define_key, op_define_key_spread,
 		op_store_key, op_load_key,
 		op_eq, op_add, op_sub, op_mul, op_div, op_mod, op_or, op_xor, op_and,

@@ -20,12 +20,25 @@ func string_format(format string, a ...any) yv_string {
 	return yv_string(fmt.Sprintf(format, a...))
 }
 
-type yv_structure struct {
-	data map[yv_value]yv_value
+type struct_proto interface {
+	yv_value
+	load(key yv_value) yv_value
 }
 
-func new_structure() *yv_structure {
-	return &yv_structure{data: make(map[yv_value]yv_value, struct_cap)}
+func (n yv_nihil) load(key yv_value) yv_value {
+	return yv_nihil{}
+}
+
+type yv_structure struct {
+	data  map[yv_value]yv_value
+	proto struct_proto
+}
+
+func new_structure(proto struct_proto) *yv_structure {
+	return &yv_structure{
+		data:  make(map[yv_value]yv_value, struct_cap),
+		proto: proto,
+	}
 }
 
 func (s *yv_structure) store(k yv_value, v yv_value) {
@@ -40,7 +53,7 @@ func (s *yv_structure) load(k yv_value) (v yv_value) {
 	if v, ok := s.data[k]; ok {
 		return v
 	} else {
-		return yv_nihil{}
+		return s.proto.load(k)
 	}
 }
 

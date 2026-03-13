@@ -1,4 +1,15 @@
-const Tree = struct {
+struct Tree {
+  .new(depth) {
+    const self = struct (Tree) { .depth };
+    if (depth > 0) {
+      self.a = Tree.new(depth - 1);
+      self.b = Tree.new(depth - 1);
+      self.c = Tree.new(depth - 1);
+      self.d = Tree.new(depth - 1);
+      self.e = Tree.new(depth - 1);
+    }
+    return self;
+  },
   ->walk() {
     if (self.depth == 0) return 0;
     return self.depth +
@@ -7,22 +18,10 @@ const Tree = struct {
       self.c->walk() +
       self.d->walk() +
       self.e->walk();
-  }
+  },
 }
 
-function newTree(depth) {
-  const self = struct { .depth, Tree... };
-  if (depth > 0) {
-    self.a = newTree(depth - 1);
-    self.b = newTree(depth - 1);
-    self.c = newTree(depth - 1);
-    self.d = newTree(depth - 1);
-    self.e = newTree(depth - 1);
-  }
-  return self;
-}
-
-const tree = newTree(8);
+const tree = Tree.new(8);
 
 const start = clock();
 
