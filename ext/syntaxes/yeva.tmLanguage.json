@@ -90,6 +90,14 @@
         {
           "name": "constant.language.yeva",
           "match": "\\b(false|true|void)\\b"
+        },
+        {
+          "name": "entity.name.function.yeva",
+          "match": "(?<=function\\s+)[a-zA-Z_][a-zA-Z0-9_]*\\b"
+        },
+        {
+          "name": "entity.name.class.yeva",
+          "match": "(?<=struct\\s+)[a-zA-Z_][a-zA-Z0-9_]*\\b"
         }
       ]
     },
