@@ -266,59 +266,47 @@ func (c *compiler) for_stmt(label string) {
 }
 
 func (c *compiler) break_stmt() {
-	if c.step_on(lx_name) {
-		label := c.previous.literal
-		loop := c.loop
-		for loop != nil {
+	if c.match_semi() {
+		if c.loop != nil {
+			c.end_loop_scopes(c.loop)
+			slice_push(&c.loop.breaks, c.emit_goto(op_goto))
+		} else {
+			c.error_near_previous("'break' outside loop")
+		}
+	} else {
+		label := c.expect_name()
+		c.expect_semi()
+		for loop := c.loop; loop != nil; loop = loop.enclosing {
 			if loop.label == label {
 				c.end_loop_scopes(loop)
 				slice_push(&loop.breaks, c.emit_goto(op_goto))
-				goto end
+				return
 			}
-			loop = loop.enclosing
 		}
 		c.error_near_previous("undefined label")
-		return
-	} else {
-		loop := c.loop
-		if loop != nil {
-			c.end_loop_scopes(loop)
-			slice_push(&loop.breaks, c.emit_goto(op_goto))
-			goto end
-		}
-		c.error_near_previous("'break' outside loop")
-		return
 	}
-end:
-	c.expect_semi()
 }
 
 func (c *compiler) continue_stmt() {
-	if c.step_on(lx_name) {
-		label := c.previous.literal
-		loop := c.loop
-		for loop != nil {
+	if c.match_semi() {
+		if c.loop != nil {
+			c.end_loop_scopes(c.loop)
+			c.emit_goto_back(c.loop.start)
+		} else {
+			c.error_near_previous("'continue' outside loop")
+		}
+	} else {
+		label := c.expect_name()
+		c.expect_semi()
+		for loop := c.loop; loop != nil; loop = loop.enclosing {
 			if loop.label == label {
 				c.end_loop_scopes(loop)
 				c.emit_goto_back(loop.start)
-				goto end
+				return
 			}
-			loop = loop.enclosing
 		}
 		c.error_near_previous("undefined label")
-		return
-	} else {
-		loop := c.loop
-		if loop != nil {
-			c.end_loop_scopes(loop)
-			c.emit_goto_back(loop.start)
-			goto end
-		}
-		c.error_near_previous("'continue' outside loop")
-		return
 	}
-end:
-	c.expect_semi()
 }
 
 func (c *compiler) return_stmt() {
@@ -1168,10 +1156,11 @@ func (p *parser) expect_name() string {
 
 func (p *parser) expect_semi() {
 	if mode_autosemi {
-		_ = p.step_on(lx_line) || p.step_on(lx_semi)
-	} else {
-		p.expect(lx_semi)
+		if p.step_on(lx_line) || p.step_on(lx_eof) || p.check(lx_rbrace) {
+			return
+		}
 	}
+	p.expect(lx_semi)
 }
 
 func (p *parser) ignore_line() { p.step_on(lx_line) }

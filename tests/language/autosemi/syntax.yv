@@ -1,0 +1,12 @@
+function add1(a, b) => a + b
+function add2(a, b) { return a + b }
+function add3(a) { const b = 0; return a + b }
+function add4(a) {
+  const b = 0
+  return a + b
+}
+
+const s1 = struct { .a = 0 }
+const s2 = struct {
+  .a = 0
+}
