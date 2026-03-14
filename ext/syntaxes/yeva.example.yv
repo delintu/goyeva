@@ -1,5 +1,5 @@
 function div(a, b) {
-  if (b == 0) throw "divizion by zero";
+  if !(b) throw "divizion by zero";
   var c;
   c = a / b;
   return c;
@@ -7,7 +7,7 @@ function div(a, b) {
 
 struct logger {
   ._prefix = "[06:21]",
-  .log(self, obj) => log(self._prefix, obj),
+  ->log(obj) => log(self._prefix, obj),
   .ho => print("ho"),
 };
 
@@ -22,6 +22,9 @@ const add = function (a, b) => a + b;
 
 function hello {
   const msg = "Hello,\n" +
-    "\tworld!\n";
+    "\tworld!";
+  msg += "\n";
   print(msg);
 }
+
+argv ??= struct (logger) {};

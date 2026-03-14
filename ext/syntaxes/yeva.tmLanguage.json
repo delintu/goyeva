@@ -104,12 +104,28 @@
     "operators": {
       "patterns": [
         {
-          "name": "keyword.operator.arithmetic.yeva",
-          "match": "[+\\*/%](?!>)"
+          "name": "keyword.operator.arithmetic.compound.yeva",
+          "match": "\\+=|-=|\\*=|/=|%="
         },
         {
-          "name": "keyword.operator.arithmetic.compound.yeva",
-          "match": "[+\\-*/%]="
+          "name": "keyword.operator.arithmetic.yeva",
+          "match": "\\+|-(?!>)|\\*|/|%"
+        },
+        {
+          "name": "keyword.operator.logical.compound.yeva",
+          "match": "&&=|\\|\\|=|\\?\\?="
+        },
+        {
+          "name": "keyword.operator.logical.yeva",
+          "match": "&&|\\|\\||\\?\\?|!"
+        },
+        {
+          "name": "keyword.operator.bitwise.compound.yeva",
+          "match": "&=|\\|=|\\^="
+        },
+        {
+          "name": "keyword.operator.bitwise.yeva",
+          "match": "&|\\||\\^|~"
         },
         {
           "name": "keyword.operator.arrow.yeva",
@@ -126,14 +142,6 @@
         {
           "name": "keyword.operator.increment-decrement.yeva",
           "match": "\\+\\+|\\-\\-"
-        },
-        {
-          "name": "keyword.operator.logical.yeva",
-          "match": "&&|\\|\\||!"
-        },
-        {
-          "name": "keyword.operator.bitwise.yeva",
-          "match": "&|\\||\\^|~"
         },
         {
           "name": "keyword.operator.spread.yeva",
