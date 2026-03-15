@@ -1,4 +1,4 @@
-const count = 3;
+var count = 3;
 var i = 0;
 while (i < count) {
   print(i);

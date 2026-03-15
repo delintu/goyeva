@@ -291,7 +291,6 @@ var trio = map[[3]byte]lx_type{
 
 var keywords = map[string]lx_type{
 	variable_literal: lx_variable,
-	constant_literal: lx_constant,
 	function_literal: lx_function,
 	nihil_literal:    lx_nihil,
 	"false":          lx_false,

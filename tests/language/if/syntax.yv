@@ -1,4 +1,4 @@
-const condition = true;
+var condition = true;
 if (condition) {
   print("good"); # out: good
 } else {

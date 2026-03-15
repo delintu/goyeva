@@ -2,8 +2,8 @@ package yeva
 
 import (
 	"fmt"
+	"math"
 	"os"
-	"slices"
 	"strconv"
 )
 
@@ -47,8 +47,6 @@ func (c *compiler) decl() {
 			c.structure_decl()
 		case c.step_on(lx_variable):
 			c.multiline_decl(c.variable_decl)
-		case c.step_on(lx_constant):
-			c.multiline_decl(c.constant_decl)
 		default:
 			c.stmt()
 		}
@@ -59,6 +57,7 @@ func (c *compiler) multiline_decl(f func()) {
 	many := c.step_on(lx_lparen)
 	for {
 		if many && c.step_on(lx_rparen) {
+			c.expect_semi()
 			break
 		}
 		f()
@@ -69,9 +68,8 @@ func (c *compiler) multiline_decl(f func()) {
 }
 
 func (c *compiler) variable_decl() {
-	vars := []int{}
 	for {
-		slice_push(&vars, c.declare_variable(true))
+		c.declare_variable(c.expect_name())
 		if c.step_on(lx_equal) {
 			c.expr(false)
 		} else {
@@ -81,39 +79,21 @@ func (c *compiler) variable_decl() {
 			break
 		}
 	}
-	slices.Reverse(vars)
-	for _, v := range vars {
-		c.define_variable(v)
-	}
-	c.expect_semi()
-}
-
-func (c *compiler) constant_decl() {
-	vars := []int{}
-	for {
-		slice_push(&vars, c.declare_variable(false))
-		c.expect(lx_equal)
-		c.expr(false)
-		if !c.step_on(lx_comma) {
-			break
-		}
-	}
-	slices.Reverse(vars)
-	for _, v := range vars {
-		c.define_variable(v)
-	}
+	c.define_variables()
 	c.expect_semi()
 }
 
 func (c *compiler) function_decl() {
-	c.define_variable(c.declare_variable(false))
+	c.declare_variable(c.expect_name())
+	c.define_variables()
 	if c.named_function(c.previous.literal, false) {
 		c.expect_semi()
 	}
 }
 
 func (c *compiler) structure_decl() {
-	c.define_variable(c.declare_variable(false))
+	c.declare_variable(c.expect_name())
+	c.define_variables()
 	c.parse_structure(false)
 }
 
@@ -164,8 +144,6 @@ func (c *compiler) if_stmt(reverse bool) {
 	c.expect(lx_lparen)
 	if c.step_on(lx_variable) {
 		c.variable_decl()
-	} else if c.step_on(lx_constant) {
-		c.constant_decl()
 	}
 	c.expr(true)
 	c.expect(lx_rparen)
@@ -472,6 +450,9 @@ func (c *compiler) add_upvalue(idx int, is_local bool) int {
 			return i
 		}
 	}
+	if len(c.fn.upvals) > math.MaxUint8 {
+		c.error_near_previous("too many captured variables")
+	}
 	slice_push(&c.fn.upvals, new_upv)
 	return len(c.fn.upvals) - 1
 }
@@ -603,11 +584,8 @@ func (c *compiler) struct_body() {
 
 func (c *compiler) parse_function(can_assign bool) {
 	name := "@anonymous"
-	if len(c.locals) != 0 {
-		last := c.locals[len(c.locals)-1]
-		if !last.is_init {
-			name = last.name
-		}
+	if last := slice_last(c.locals); last != nil && !last.is_init {
+		name = last.name
 	}
 	c.named_function(name, false)
 }
@@ -620,7 +598,8 @@ func (c *compiler) named_function(name string, is_method bool) bool {
 	}
 	if is_method {
 		fc.fn.paramc++
-		fc.locals[fc.add_local(name_self, true)].is_init = true
+		fc.declare_variable(name_self)
+		slice_last(fc.locals).is_init = true
 	}
 	if fc.step_on(lx_lparen) {
 		fc.param_list()
@@ -641,6 +620,11 @@ func (c *compiler) named_function(name string, is_method bool) bool {
 func (c *compiler) parse_prefix(can_assign bool) {
 	op := c.previous.lx_type
 	prefix_len := c.prefix.len
+	if (op == lx_plus_plus || op == lx_minus_minus) &&
+		c.prefix.len == bool_stack16_max {
+		c.prefix.clear()
+		c.error_near_previous("too many nested prefixes")
+	}
 	switch op {
 	case lx_plus_plus:
 		c.prefix.push(true)
@@ -842,8 +826,7 @@ func (c *compiler) parse_arrow(can_assign bool) {
 	}
 }
 
-func (c *compiler) declare_variable(is_mut bool) int {
-	name := c.expect_name()
+func (c *compiler) declare_variable(name string) {
 	for i := len(c.locals) - 1; i >= 0; i-- {
 		if c.locals[i].scope < c.scope {
 			break
@@ -852,29 +835,28 @@ func (c *compiler) declare_variable(is_mut bool) int {
 			c.error_near_previous("variable already declared")
 		}
 	}
-	return c.add_local(name, is_mut)
+	c.add_local(name)
 }
 
-func (c *compiler) define_variable(idx int) {
-	local := &c.locals[idx]
-	local.is_init = true
-	if local.is_mut {
-		c.emit(op_define_mutable)
-	} else {
-		c.emit(op_define)
+func (c *compiler) define_variables() {
+	for i := len(c.locals) - 1; i >= 0; i-- {
+		if local := &c.locals[i]; !local.is_init {
+			local.is_init = true
+			c.emit(op_define)
+		} else {
+			break
+		}
 	}
 }
 
-func (c *compiler) add_local(name string, is_mut bool) int {
+func (c *compiler) add_local(name string) {
+	if len(c.locals) > math.MaxUint8 {
+		c.error_near_previous("too many local variables")
+	}
 	slice_push(&c.locals, local{
-		name:   name,
-		scope:  c.scope,
-		is_mut: is_mut,
+		name:  name,
+		scope: c.scope,
 	})
-	if len(c.locals) > c.fn.localc {
-		c.fn.localc = len(c.locals)
-	}
-	return len(c.locals) - 1
 }
 
 func (c *compiler) emit(ops ...op_code) {
@@ -885,11 +867,18 @@ func (c *compiler) emit(ops ...op_code) {
 
 func (c *compiler) emit_value(v yv_value) {
 	i := c.fn.add_value(v)
+	if i > math.MaxUint8 {
+		c.error_near_previous("too many local values")
+	}
 	c.emit(op_value, uint8(i))
 }
 
 func (c *compiler) emit_closure(f *fn_proto) {
-	c.emit(op_closure, uint8(c.fn.add_fn(f)))
+	i := c.fn.add_fn(f)
+	if i > math.MaxUint8 {
+		c.error_near_previous("too many local functions")
+	}
+	c.emit(op_closure, uint8(i))
 }
 
 func (c *compiler) emit_return() {
@@ -903,12 +892,18 @@ func (c *compiler) emit_goto(op op_code) int {
 
 func (c *compiler) patch_goto(start int) {
 	jump := len(c.fn.code) - start
+	if jump > math.MaxInt16 {
+		c.error_near_previous("too long jump")
+	}
 	c.fn.code[start-2], c.fn.code[start-1] = u16tou8(uint16(jump))
 }
 
 func (c *compiler) emit_goto_back(start int) {
 	c.emit(op_goto)
 	jump := start - len(c.fn.code) - 2
+	if jump < math.MinInt16 {
+		c.error_near_previous("too long jump")
+	}
 	c.emit(u16tou8(uint16(jump)))
 }
 
@@ -964,7 +959,8 @@ func (c *compiler) param_list() {
 			} else {
 				c.fn.paramc++
 			}
-			c.locals[c.declare_variable(true)].is_init = true
+			c.declare_variable(c.expect_name())
+			slice_last(c.locals).is_init = true
 			c.ignore_line()
 			if !c.step_on(lx_comma) {
 				break
@@ -982,6 +978,9 @@ func (c *compiler) arg_list() (uint8, bool) {
 	is_spread := false
 	if !c.check(lx_rparen) {
 		for {
+			if argc+1 > math.MaxUint8 {
+				c.error_near_previous("too many arguments")
+			}
 			c.expr(false)
 			if c.step_on(lx_dot_dot_dot) {
 				is_spread = true
@@ -1076,7 +1075,6 @@ type local struct {
 
 	is_init  bool
 	is_upval bool
-	is_mut   bool
 }
 
 type loop struct {
@@ -1152,7 +1150,6 @@ func (p *parser) expect(t lx_type) {
 		return
 	}
 	p.error_near_current("'%s' expected", t)
-	panic(parse_error{})
 }
 
 func (p *parser) expect_name() string {
@@ -1197,6 +1194,7 @@ func (p *parser) error_near(lx *lexeme, format string, a ...any) {
 	}
 	fmt.Fprintln(os.Stderr)
 	p.had_error = true
+	panic(parse_error{})
 }
 
 func (p *parser) sync() {
@@ -1214,7 +1212,6 @@ func (p *parser) sync() {
 
 var sync_lexemes = map[lx_type]empty{
 	lx_variable: {},
-	lx_constant: {},
 	lx_if:       {},
 	lx_while:    {},
 	lx_do:       {},

@@ -1,29 +1,29 @@
 struct Tree {
   .new(depth) {
-    const self = struct (Tree) { .depth };
+    var this = struct (Tree) { .depth };
     if (depth > 0) {
-      self.a = Tree.new(depth - 1);
-      self.b = Tree.new(depth - 1);
-      self.c = Tree.new(depth - 1);
-      self.d = Tree.new(depth - 1);
-      self.e = Tree.new(depth - 1);
+      this.a = Tree.new(depth - 1);
+      this.b = Tree.new(depth - 1);
+      this.c = Tree.new(depth - 1);
+      this.d = Tree.new(depth - 1);
+      this.e = Tree.new(depth - 1);
     }
-    return self;
+    return this;
   },
   ->walk() {
-    if (self.depth == 0) return 0;
-    return self.depth +
-      self.a->walk() +
-      self.b->walk() +
-      self.c->walk() +
-      self.d->walk() +
-      self.e->walk();
+    if (this.depth == 0) return 0;
+    return this.depth +
+      this.a->walk() +
+      this.b->walk() +
+      this.c->walk() +
+      this.d->walk() +
+      this.e->walk();
   },
 }
 
-const tree = Tree.new(8);
+var tree = Tree.new(8);
 
-const start = clock();
+var start = clock();
 
 for (var i = 0; i < 100; i++) {
   if (tree->walk() != 122_068) throw "error";

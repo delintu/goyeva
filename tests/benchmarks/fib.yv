@@ -3,7 +3,7 @@ function fib(n) {
   return fib(n - 1) + fib(n - 2);
 }
 
-const start = clock();
+var start = clock();
 
 fib(36);
 

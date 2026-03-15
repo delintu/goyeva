@@ -95,11 +95,10 @@ func (f *fn_proto) add_fn(fp *fn_proto) int {
 }
 
 type upvalue struct {
-	loc    int
-	ref    *[]yv_value
-	fr     *call_frame
-	clsd   yv_value
-	is_mut bool
+	loc  int
+	ref  *[]yv_value
+	fr   *call_frame
+	clsd yv_value
 }
 
 func (u *upvalue) is_init() bool {
@@ -116,9 +115,7 @@ func (u *upvalue) close() {
 }
 
 func (u *upvalue) store(v yv_value) yv_value {
-	if !u.is_mut {
-		return rte_store_constant
-	} else if !u.is_init() {
+	if !u.is_init() {
 		return rte_store_uninit
 	}
 	if u.loc != -1 {

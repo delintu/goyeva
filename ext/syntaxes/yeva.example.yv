@@ -7,7 +7,7 @@ function div(a, b) {
 
 struct logger {
   ._prefix = "[06:21]",
-  ->log(obj) => log(self._prefix, obj),
+  ->log(obj) => log(this._prefix, obj),
   .ho => print("ho"),
 };
 
@@ -18,10 +18,10 @@ loop: for (var i = 0; i < 10; i++) {
 
 3.14 ? catch div(2, 0) : struct { 1, 2, 3, void };
 
-const add = function (a, b) => a + b;
+var add = function (a, b) => a + b;
 
 function hello {
-  const msg = "Hello,\n" +
+  var msg = "Hello,\n" +
     "\tworld!";
   msg += "\n";
   print(msg);

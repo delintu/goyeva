@@ -73,7 +73,6 @@ const (
 	lx_string lx_type = "string"
 
 	lx_variable lx_type = "variable"
-	lx_constant lx_type = "constant"
 	lx_function lx_type = "function"
 
 	lx_nihil    lx_type = "nihil"

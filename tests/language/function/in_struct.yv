@@ -1,4 +1,4 @@
-const s = struct {
+var s = struct {
   .add1(a, b) { return a + b; },
   .add2(a, b) => a + b,
 

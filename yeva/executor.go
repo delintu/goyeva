@@ -16,18 +16,12 @@ type call_frame struct {
 	closure *yv_closure
 	pc      int
 	slots   int
-	is_mut  []bool
 	initc   int
 }
 
-func (cf *call_frame) define_local(is_mut bool) {
-	cf.is_mut[cf.initc] = is_mut
-	cf.initc++
-}
+func (cf *call_frame) define_local() { cf.initc++ }
 
-func (cf *call_frame) undefine_local() {
-	cf.initc--
-}
+func (cf *call_frame) undefine_local() { cf.initc-- }
 
 func (cf *call_frame) read_byte() uint8 {
 	cf.pc++
@@ -76,7 +70,7 @@ type global_cell struct {
 }
 
 type executor struct {
-	globals        map[yv_string]global_cell
+	globals        map[yv_string]yv_value
 	call_stack     []call_frame
 	stack          []yv_value
 	catch_handlers []catch_handler
@@ -86,7 +80,6 @@ type executor struct {
 
 func (e *executor) add_open_upval(loc int) *upvalue {
 	fr := e.current_frame()
-	is_mut := fr.is_mut[loc]
 	loc = fr.slots + loc
 	var prev *linked_node[*upvalue] = nil
 	cur := e.open_upvals
@@ -97,7 +90,7 @@ func (e *executor) add_open_upval(loc int) *upvalue {
 	if cur != nil && cur.value.loc == loc {
 		return cur.value
 	}
-	new_upvalue := &upvalue{loc, &e.stack, fr, nil, is_mut}
+	new_upvalue := &upvalue{loc, &e.stack, fr, nil}
 	new_node := &linked_node[*upvalue]{value: new_upvalue, next: cur}
 	if prev != nil {
 		prev.next = new_node
@@ -149,12 +142,8 @@ func (e *executor) call_closure(
 	new_frame := call_frame{
 		closure: cls,
 		pc:      0,
-		is_mut:  make([]bool, cls.fn.paramc+btoi(cls.fn.vararg)+cls.fn.localc),
 		slots:   len(e.stack) - argc,
 		initc:   cls.fn.paramc + btoi(cls.fn.vararg),
-	}
-	for i := range cls.fn.paramc + btoi(cls.fn.vararg) {
-		new_frame.is_mut[i] = true
 	}
 	slice_push(&e.call_stack, new_frame)
 	e.balance_args(argc, cls.fn.paramc, cls.fn.vararg)
@@ -185,41 +174,29 @@ func (e *executor) balance_args(argc int, paramc int, vararg bool) {
 	}
 }
 
-func (e *executor) store_local(cf *call_frame, idx int, v yv_value) yv_value {
-	if !cf.is_mut[idx] {
-		return rte_store_constant
-	} else if cf.initc <= idx {
-		return rte_store_uninit
-	}
+func (e *executor) store_local(cf *call_frame, idx int, v yv_value) {
 	e.stack[cf.slots+idx] = v
-	return nil
 }
 
-func (e *executor) load_local(cf *call_frame, idx int) (yv_value, yv_value) {
-	if cf.initc <= idx {
-		return nil, rte_load_uninit
-	}
-	return e.stack[cf.slots+idx], nil
+func (e *executor) load_local(cf *call_frame, idx int) yv_value {
+	return e.stack[cf.slots+idx]
 }
 
 func (e *executor) store_global(name yv_string, v yv_value) yv_value {
-	cell, ok := e.globals[name]
+	_, ok := e.globals[name]
 	if !ok {
 		return rte_not_defined
 	}
-	if !cell.is_mut {
-		return rte_store_constant
-	}
-	e.globals[name] = global_cell{v, true}
+	e.globals[name] = v
 	return nil
 }
 
 func (e *executor) load_global(name yv_string) (yv_value, yv_value) {
-	cell, ok := e.globals[name]
+	v, ok := e.globals[name]
 	if !ok {
 		return nil, rte_not_defined
 	}
-	return cell.value, nil
+	return v, nil
 }
 
 func (e *executor) push(v yv_value) {
@@ -349,25 +326,15 @@ func (e *executor) execute(cls *yv_closure) {
 			e.temp = e.peek1()
 		case op_copy_from:
 			e.stack[len(e.stack)-1] = e.temp
-		case op_define_mutable:
-			fr.define_local(true)
 		case op_define:
-			fr.define_local(false)
+			fr.define_local()
 		case op_undefine:
 			fr.undefine_local()
 			e.pop()
 		case op_store_local:
-			if err := e.store_local(fr, int(fr.read_byte()), e.peek1()); err != nil {
-				e.push(err)
-				goto unwind
-			}
+			e.store_local(fr, int(fr.read_byte()), e.peek1())
 		case op_load_local:
-			v, err := e.load_local(fr, int(fr.read_byte()))
-			if err != nil {
-				e.push(err)
-				goto unwind
-			}
-			e.push(v)
+			e.push(e.load_local(fr, int(fr.read_byte())))
 		case op_store_name:
 			if err := e.store_global(fr.read_string(), e.peek1()); err != nil {
 				e.push(err)

@@ -23,9 +23,9 @@ const (
 
 	mode_autosemi bool = true
 
-	dbg_lex  = false
+	dbg_lex = false
 	dbg_code = false
-	dbg_exe  = false
+	dbg_exe = false
 
 	// dbg_lex  = true
 	// dbg_code = true
@@ -37,18 +37,16 @@ const (
 
 	nihil_literal    = "void"
 	variable_literal = "var"
-	constant_literal = "const"
 	function_literal = "function"
 
 	key_result  yv_string = "result"
 	key_catched yv_string = "catched"
 
-	name_self = "self"
+	name_self = "this"
 
-	rte_load_uninit    yv_string = "attempt to load uninitialized variable"
-	rte_store_uninit   yv_string = "attempt to store to uninitialized variable"
-	rte_store_constant yv_string = "attempt to store to a constant"
-	rte_not_defined    yv_string = "variable is not defined"
+	rte_load_uninit  yv_string = "attempt to load uninitialized variable"
+	rte_store_uninit yv_string = "attempt to store to uninitialized variable"
+	rte_not_defined  yv_string = "variable is not defined"
 )
 
 //go:embed embed/embed.yv
@@ -142,8 +140,13 @@ func slice_cut[T any](s *[]T, i int) {
 }
 
 func slice_last[T any](s []T) (t *T) {
+	if len(s) == 0 {
+		return
+	}
 	return &s[len(s)-1]
 }
+
+const bool_stack16_max = 16
 
 type bool_stack16 struct {
 	len  int16

@@ -19,13 +19,13 @@ type Yeva = executor
 
 func New() *Yeva {
 	e := &executor{
-		globals: map[yv_string]global_cell{
-			"print": {yv_native(native_print), false},
-			"clock": {yv_native(native_clock), false},
+		globals: map[yv_string]yv_value{
+			"print": yv_native(native_print),
+			"clock": yv_native(native_clock),
 		},
 	}
 	e.Interpret(embed)
-	e.globals["assert"] = global_cell{e.pop(), false}
+	e.globals["assert"] = e.pop()
 	return e
 }
 
