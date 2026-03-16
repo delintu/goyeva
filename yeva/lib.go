@@ -21,7 +21,7 @@ func (v version) String() string {
 const (
 	nul = '\x00'
 
-	mode_autosemi bool = true
+	mode_autosemi bool = false
 
 	dbg_lex = false
 	dbg_code = false

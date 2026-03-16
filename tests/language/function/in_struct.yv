@@ -6,4 +6,4 @@ var s = struct {
   .main2() => void,
   .main3 {},
   .main4 => void,
-}
+};

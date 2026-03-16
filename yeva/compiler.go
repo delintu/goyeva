@@ -95,6 +95,7 @@ func (c *compiler) structure_decl() {
 	c.declare_variable(c.expect_name())
 	c.define_variables()
 	c.parse_structure(false)
+	c.expect_semi()
 }
 
 func (c *compiler) stmt() {

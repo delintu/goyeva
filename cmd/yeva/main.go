@@ -28,6 +28,8 @@ func main() {
 			err = runRepl()
 		case "run":
 			err = runFile(os.Args[2:])
+		default:
+			err = fmt.Errorf("unknown command '%s'", os.Args[1])
 		}
 	}
 
