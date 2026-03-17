@@ -24,8 +24,8 @@ const (
 	op_copy_to   // [0] +0 (?)
 	op_copy_from // [0] +0 (?)
 
-	op_define         // [0] +0
-	op_undefine       // [0] -1
+	op_define   // [0] +0
+	op_undefine // [0] -1
 
 	op_store_local   // [1] +0
 	op_load_local    // [1] +1
@@ -94,8 +94,8 @@ var op_names = [...]string{
 	op_copy_to:   "copy_to",
 	op_copy_from: "copy_from",
 
-	op_define:         "define",
-	op_undefine:       "undefine",
+	op_define:   "define",
+	op_undefine: "undefine",
 
 	op_store_local:   "store local",
 	op_load_local:    "load local",
@@ -147,7 +147,7 @@ var op_names = [...]string{
 func log_fn(f *fn_proto) {
 	fmt.Println(cover_string(string(f.name), 30, '=') + "|")
 	log_fn_code(f)
-	for _, f := range f.fns {
+	for _, f := range f.funcs {
 		log_fn(f)
 	}
 }

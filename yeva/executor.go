@@ -46,7 +46,7 @@ func (cf *call_frame) read_value() yv_value {
 }
 
 func (cf *call_frame) read_function() *fn_proto {
-	return cf.closure.fn.fns[cf.read_byte()]
+	return cf.closure.fn.funcs[cf.read_byte()]
 }
 
 func (cf *call_frame) read_string() yv_string {
@@ -64,11 +64,6 @@ type linked_node[T any] struct {
 	next  *linked_node[T]
 }
 
-type global_cell struct {
-	value  yv_value
-	is_mut bool
-}
-
 type executor struct {
 	globals        map[yv_string]yv_value
 	call_stack     []call_frame
@@ -80,17 +75,17 @@ type executor struct {
 
 func (e *executor) add_open_upval(loc int) *upvalue {
 	fr := e.current_frame()
-	loc = fr.slots + loc
+	loc = fr.slots + loc // absolute location
 	var prev *linked_node[*upvalue] = nil
 	cur := e.open_upvals
-	for cur != nil && cur.value.loc > loc {
+	for cur != nil && cur.value.abs_loc > loc {
 		prev = cur
 		cur = cur.next
 	}
-	if cur != nil && cur.value.loc == loc {
+	if cur != nil && cur.value.abs_loc == loc {
 		return cur.value
 	}
-	new_upvalue := &upvalue{loc, &e.stack, fr, nil}
+	new_upvalue := &upvalue{loc, &e.stack, len(e.call_stack) - 1, nil}
 	new_node := &linked_node[*upvalue]{value: new_upvalue, next: cur}
 	if prev != nil {
 		prev.next = new_node
@@ -101,7 +96,7 @@ func (e *executor) add_open_upval(loc int) *upvalue {
 }
 
 func (e *executor) close_upvals(loc_of_last int) {
-	for e.open_upvals != nil && e.open_upvals.value.loc >= loc_of_last {
+	for e.open_upvals != nil && e.open_upvals.value.abs_loc >= loc_of_last {
 		e.open_upvals.value.close()
 		e.open_upvals = e.open_upvals.next
 	}
@@ -348,12 +343,13 @@ func (e *executor) execute(cls *yv_closure) {
 			}
 			e.push(v)
 		case op_store_upvalue:
-			if err := fr.closure.upvals[fr.read_byte()].store(e.peek1()); err != nil {
+			err := fr.closure.upvals[fr.read_byte()].store(e, e.peek1())
+			if err != nil {
 				e.push(err)
 				goto unwind
 			}
 		case op_load_upvalue:
-			v, err := fr.closure.upvals[fr.read_byte()].load()
+			v, err := fr.closure.upvals[fr.read_byte()].load(e)
 			if err != nil {
 				e.push(err)
 				goto unwind

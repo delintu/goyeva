@@ -23,9 +23,9 @@ const (
 
 	mode_autosemi bool = false
 
-	dbg_lex = false
+	dbg_lex  = false
 	dbg_code = false
-	dbg_exe = false
+	dbg_exe  = false
 
 	// dbg_lex  = true
 	// dbg_code = true

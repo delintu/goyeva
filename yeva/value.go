@@ -67,7 +67,7 @@ type fn_proto struct {
 	code   []uint8
 	lines  []int
 	values []yv_value
-	fns    []*fn_proto
+	funcs  []*fn_proto
 	paramc int
 	upvals []upval_info
 	localc int
@@ -90,48 +90,52 @@ func (f *fn_proto) add_value(v yv_value) int {
 }
 
 func (f *fn_proto) add_fn(fp *fn_proto) int {
-	slice_push(&f.fns, fp)
-	return len(f.fns) - 1
+	slice_push(&f.funcs, fp)
+	return len(f.funcs) - 1
 }
 
 type upvalue struct {
-	loc  int
-	ref  *[]yv_value
-	fr   *call_frame
-	clsd yv_value
+	abs_loc int
+	ref     *[]yv_value
+	fr_idx  int
+	clsd    yv_value
 }
 
-func (u *upvalue) is_init() bool {
-	if u.loc != -1 {
-		return u.fr.initc > u.loc-u.fr.slots
+const upvalue_is_closed = -1
+
+func (u *upvalue) is_init(e *executor) bool {
+	if u.abs_loc != upvalue_is_closed {
+		fr := e.call_stack[u.fr_idx]
+		return fr.initc > u.abs_loc-fr.slots
 	} else {
 		return true
 	}
 }
 
 func (u *upvalue) close() {
-	clsd, _ := u.load()
-	u.clsd, u.loc = clsd, -1
+	u.clsd = (*u.ref)[u.abs_loc]
+	u.abs_loc = upvalue_is_closed
+	u.ref = nil
 }
 
-func (u *upvalue) store(v yv_value) yv_value {
-	if !u.is_init() {
+func (u *upvalue) store(e *executor, v yv_value) yv_value {
+	if !u.is_init(e) {
+		// store fallback
 		return rte_store_uninit
-	}
-	if u.loc != -1 {
-		(*u.ref)[u.loc] = v
+	} else if u.abs_loc != upvalue_is_closed {
+		(*u.ref)[u.abs_loc] = v
 	} else {
 		u.clsd = v
 	}
 	return nil
 }
 
-func (u *upvalue) load() (yv_value, yv_value) {
-	if !u.is_init() {
+func (u *upvalue) load(e *executor) (yv_value, yv_value) {
+	if !u.is_init(e) {
+		// load fallback
 		return nil, rte_load_uninit
-	}
-	if u.loc != -1 {
-		return (*u.ref)[u.loc], nil
+	} else if u.abs_loc != upvalue_is_closed {
+		return (*u.ref)[u.abs_loc], nil
 	} else {
 		return u.clsd, nil
 	}

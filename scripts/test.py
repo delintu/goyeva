@@ -7,11 +7,19 @@ TEST_DIR = "./tests/language"
 EXTS = ["yv", "yeva"]
 
 
+def read_skip(file: pathlib.Path) -> bool:
+    with open(file, "r", encoding="utf-8") as f:
+        for line in f.readlines():
+            if re.search(r"#\s*skip!", line):
+                return True
+    return False
+
+
 def read_out(file: pathlib.Path) -> list[str]:
     out: list[str] = []
     with open(file, "r", encoding="utf-8") as f:
         for line in f.readlines():
-            if match := re.search(r"# out:(.+)", line):
+            if match := re.search(r"#\s*out:(.+)", line):
                 out.append(match.group(1).strip())
     return out
 
@@ -19,7 +27,7 @@ def read_out(file: pathlib.Path) -> list[str]:
 def read_err(file: pathlib.Path) -> str:
     with open(file, "r", encoding="utf-8") as f:
         for line in f.readlines():
-            if match := re.search(r"# err:(.+)", line):
+            if match := re.search(r"#\s*err:(.+)", line):
                 return match.group(1).strip()
     return ""
 
@@ -45,6 +53,10 @@ def main(run: Run):
     print(cover("tests"))
     errors = 0
     for file in read_files(TEST_DIR, EXTS):
+        if read_skip(file):
+            print(file, "-> skip")
+            continue
+
         out, err = read_out(file), read_err(file)
         stdout, stderr = run("run", file, timeout=2)
 
