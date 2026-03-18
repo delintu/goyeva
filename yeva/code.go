@@ -37,6 +37,7 @@ const (
 
 	op_closure       // [1] +1
 	op_close_upvalue // [0] -1
+	op_init_upvalue  // ??????
 
 	op_structure // [0] +0
 
@@ -108,6 +109,7 @@ var op_names = [...]string{
 
 	op_closure:       "closure",
 	op_close_upvalue: "close_upvalue",
+	op_init_upvalue:  "init_upvalue",
 
 	op_structure: "structure",
 

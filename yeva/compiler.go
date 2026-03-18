@@ -7,6 +7,17 @@ import (
 	"strconv"
 )
 
+type compile_context struct {
+	lates map[string]late_bind
+}
+
+type late_bind struct {
+	info *upval_info
+
+	store_ops []int
+	load_ops  []int
+}
+
 type compiler struct {
 	*parser
 	enclosing *compiler
@@ -15,12 +26,22 @@ type compiler struct {
 	loop      *loop
 	fn        *fn_proto
 	prefix    bool_stack16
+	ctx       *compile_context
 }
 
 func new_compiler(src []byte) *compiler {
 	return &compiler{
 		parser: new_parser(src),
 		fn:     &fn_proto{name: "@script"},
+	}
+}
+
+func (c *compiler) new_sub_compiler(fn_name string) *compiler {
+	return &compiler{
+		parser:    c.parser,
+		enclosing: c,
+		fn:        &fn_proto{name: fn_name},
+		ctx:       c.ctx,
 	}
 }
 
@@ -445,11 +466,13 @@ func (c *compiler) parse_name(can_assign bool) {
 		store = op_store_local
 		load = op_load_local
 	} else if idx, ok := c.resolve_upvalue(name); ok {
+		// c.ctx.lates[name] = late_bind{}
 		arg = uint8(idx)
 		store = op_store_upvalue
 		load = op_load_upvalue
 	} else {
 		arg = uint8(c.fn.add_value(yv_string(name)))
+		// c.ctx.lates[name] = late_bind{}
 		store = op_store_name
 		load = op_load_name
 	}
@@ -630,11 +653,7 @@ func (c *compiler) parse_function(can_assign bool) {
 }
 
 func (c *compiler) named_function(name string, is_method bool) bool {
-	fc := &compiler{
-		parser:    c.parser,
-		enclosing: c,
-		fn:        &fn_proto{name: name},
-	}
+	fc := c.new_sub_compiler(name)
 	if is_method {
 		fc.fn.paramc++
 		fc.declare_variable(name_self)

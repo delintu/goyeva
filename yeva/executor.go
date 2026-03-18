@@ -85,7 +85,7 @@ func (e *executor) add_open_upval(loc int) *upvalue {
 	if cur != nil && cur.value.abs_loc == loc {
 		return cur.value
 	}
-	new_upvalue := &upvalue{loc, &e.stack, len(e.call_stack) - 1, nil}
+	new_upvalue := &upvalue{loc, &e.stack, len(e.call_stack) - 1, nil, nil}
 	new_node := &linked_node[*upvalue]{value: new_upvalue, next: cur}
 	if prev != nil {
 		prev.next = new_node
@@ -99,6 +99,20 @@ func (e *executor) close_upvals(loc_of_last int) {
 	for e.open_upvals != nil && e.open_upvals.value.abs_loc >= loc_of_last {
 		e.open_upvals.value.close()
 		e.open_upvals = e.open_upvals.next
+	}
+}
+
+func (e *executor) bind_upvalue2(upval *upvalue, info upval2_info) {
+	switch info := info.(type) {
+	case upval2_name_info:
+		upval.up2 = up2(upval2_name_info(info))
+	case upval2_open_info:
+		fr := e.call_stack[len(e.call_stack)-1-info.back]
+		upval.up2 = up2(fr.slots + info.loc)
+	case nil:
+		/* pass */
+	default:
+		panic(unreachable)
 	}
 }
 
@@ -376,6 +390,7 @@ func (e *executor) execute(cls *yv_closure) {
 				} else {
 					cls.upvals[i] = fr.closure.upvals[upv.location]
 				}
+				e.bind_upvalue2(cls.upvals[i], upv.upval2)
 			}
 			e.push(cls)
 		case op_close_upvalue:

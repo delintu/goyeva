@@ -44,9 +44,7 @@ const (
 
 	name_self = "this"
 
-	rte_load_uninit  yv_string = "attempt to load uninitialized variable"
-	rte_store_uninit yv_string = "attempt to store to uninitialized variable"
-	rte_not_defined  yv_string = "variable is not defined"
+	rte_not_defined yv_string = "variable is not defined"
 )
 
 //go:embed embed/embed.yv

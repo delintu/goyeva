@@ -60,7 +60,17 @@ func (s *yv_structure) load(k yv_value) (v yv_value) {
 type upval_info struct {
 	location int
 	is_local bool
+	upval2   upval2_info
 }
+
+type upval2_info any
+
+type upval2_open_info struct {
+	loc  int
+	back int
+}
+
+type upval2_name_info up2_name
 
 type fn_proto struct {
 	name   string
@@ -99,10 +109,16 @@ type upvalue struct {
 	ref     *[]yv_value
 	fr_idx  int
 	clsd    yv_value
+	up2     up2
 }
+
+type up2 any
+type up2_open = int
+type up2_name = yv_string
 
 const upvalue_is_closed = -1
 
+// remove initc -> use op_init_upvalue
 func (u *upvalue) is_init(e *executor) bool {
 	if u.abs_loc != upvalue_is_closed {
 		fr := e.call_stack[u.fr_idx]
@@ -120,8 +136,14 @@ func (u *upvalue) close() {
 
 func (u *upvalue) store(e *executor, v yv_value) yv_value {
 	if !u.is_init(e) {
-		// store fallback
-		return rte_store_uninit
+		switch up2 := u.up2.(type) {
+		case up2_open:
+			(*u.ref)[up2] = v
+		case up2_name:
+			return e.store_global(up2, v)
+		default:
+			panic(unreachable)
+		}
 	} else if u.abs_loc != upvalue_is_closed {
 		(*u.ref)[u.abs_loc] = v
 	} else {
@@ -132,8 +154,14 @@ func (u *upvalue) store(e *executor, v yv_value) yv_value {
 
 func (u *upvalue) load(e *executor) (yv_value, yv_value) {
 	if !u.is_init(e) {
-		// load fallback
-		return nil, rte_load_uninit
+		switch up2 := u.up2.(type) {
+		case up2_open:
+			return (*u.ref)[up2], nil
+		case up2_name:
+			return e.load_global(up2)
+		default:
+			panic(unreachable)
+		}
 	} else if u.abs_loc != upvalue_is_closed {
 		return (*u.ref)[u.abs_loc], nil
 	} else {
