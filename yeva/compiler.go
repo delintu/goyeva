@@ -755,11 +755,15 @@ func (c *compiler) parse_and(can_assign bool) {
 }
 
 func (c *compiler) parse_nihillish(can_assign bool) {
+	c.nihillish(prec_lor)
+}
+
+func (c *compiler) nihillish(prec precedence) {
 	left_jump := c.emit_goto(op_goto_if_nihil)
 	right_jump := c.emit_goto(op_goto)
 	c.patch_goto(left_jump)
 	c.emit(op_pop)
-	c.precedence(prec_lor)
+	c.precedence(prec)
 	c.patch_goto(right_jump)
 }
 
@@ -962,6 +966,11 @@ func (c *compiler) param_list() {
 			}
 			c.declare_variable(c.expect_name())
 			slice_last(c.locals).is_init = true
+			if !c.fn.vararg && c.step_on(lx_equal) {
+				c.emit(op_load_local, uint8(len(c.locals)-1))
+				c.nihillish(prec_assign)
+				c.emit(op_store_local, uint8(len(c.locals)-1), op_pop)
+			}
 			c.ignore_line()
 			if !c.step_on(lx_comma) {
 				break

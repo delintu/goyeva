@@ -2,9 +2,7 @@
 
 ```js
 struct Vector {
-  .new(x, y) {
-    x ??= 0
-    y ??= 0
+  .new(x = 0, y = 0) {
     return struct (Vector) { .x, .y }
   },
   ->add(other) {
