@@ -16,12 +16,7 @@ type call_frame struct {
 	closure *yv_closure
 	pc      int
 	slots   int
-	initc   int
 }
-
-func (cf *call_frame) define_local() { cf.initc++ }
-
-func (cf *call_frame) undefine_local() { cf.initc-- }
 
 func (cf *call_frame) read_byte() uint8 {
 	cf.pc++
@@ -85,7 +80,10 @@ func (e *executor) add_open_upval(loc int) *upvalue {
 	if cur != nil && cur.value.abs_loc == loc {
 		return cur.value
 	}
-	new_upvalue := &upvalue{loc, &e.stack, len(e.call_stack) - 1, nil, nil}
+	new_upvalue := &upvalue{
+		abs_loc: loc,
+		ref:     &e.stack,
+	}
 	new_node := &linked_node[*upvalue]{value: new_upvalue, next: cur}
 	if prev != nil {
 		prev.next = new_node
@@ -96,21 +94,34 @@ func (e *executor) add_open_upval(loc int) *upvalue {
 }
 
 func (e *executor) close_upvals(loc_of_last int) {
+	var save *linked_node[*upvalue] = nil
+	var cur_save *linked_node[*upvalue] = save
 	for e.open_upvals != nil && e.open_upvals.value.abs_loc >= loc_of_last {
-		e.open_upvals.value.close()
+		if e.open_upvals.value.is_init {
+			e.open_upvals.value.close()
+		} else if cur_save != nil {
+			cur_save.next = e.open_upvals
+			cur_save = cur_save.next
+		} else {
+			save = e.open_upvals
+		}
 		e.open_upvals = e.open_upvals.next
+	}
+	if save != nil {
+		cur_save.next = e.open_upvals
+		e.open_upvals = save
 	}
 }
 
 func (e *executor) bind_upvalue2(upval *upvalue, info upval2_info) {
 	switch info := info.(type) {
 	case upval2_name_info:
-		upval.up2 = up2(upval2_name_info(info))
+		upval.up2 = up2(info)
 	case upval2_open_info:
 		fr := e.call_stack[len(e.call_stack)-1-info.back]
 		upval.up2 = up2(fr.slots + info.loc)
 	case nil:
-		/* pass */
+		upval.is_init = true
 	default:
 		panic(unreachable)
 	}
@@ -152,7 +163,6 @@ func (e *executor) call_closure(
 		closure: cls,
 		pc:      0,
 		slots:   len(e.stack) - argc,
-		initc:   cls.fn.paramc + btoi(cls.fn.vararg),
 	}
 	slice_push(&e.call_stack, new_frame)
 	e.balance_args(argc, cls.fn.paramc, cls.fn.vararg)
@@ -335,11 +345,6 @@ func (e *executor) execute(cls *yv_closure) {
 			e.temp = e.peek1()
 		case op_copy_from:
 			e.stack[len(e.stack)-1] = e.temp
-		case op_define:
-			fr.define_local()
-		case op_undefine:
-			fr.undefine_local()
-			e.pop()
 		case op_destruct:
 			c := int(fr.read_byte())
 			d := e.pop()
@@ -395,8 +400,13 @@ func (e *executor) execute(cls *yv_closure) {
 			e.push(cls)
 		case op_close_upvalue:
 			e.close_upvals(len(e.stack) - 1)
-			fr.undefine_local()
 			e.pop()
+		case op_init_upvalue:
+			cur := e.open_upvals
+			for cur.value.abs_loc != len(e.stack)-1 {
+				cur = cur.next
+			}
+			cur.value.is_init = true
 		case op_structure:
 			v := e.pop()
 			if p, ok := v.(struct_proto); !ok {

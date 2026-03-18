@@ -904,7 +904,6 @@ func (c *compiler) define_variables() {
 	for i := len(c.locals) - 1; i >= 0; i-- {
 		if local := &c.locals[i]; !local.is_init {
 			local.is_init = true
-			c.emit(op_define)
 		} else {
 			break
 		}
@@ -986,7 +985,7 @@ func (c *compiler) close_locals(until int, cut bool) {
 			if c.locals[i].is_upval {
 				c.emit(op_close_upvalue)
 			} else {
-				c.emit(op_undefine)
+				c.emit(op_pop)
 			}
 			if cut {
 				slice_pop(&c.locals)

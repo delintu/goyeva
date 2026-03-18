@@ -24,8 +24,6 @@ const (
 	op_copy_to   // [0] +0 (?)
 	op_copy_from // [0] +0 (?)
 
-	op_define   // [0] +0
-	op_undefine // [0] -1
 	op_destruct // [1] +0
 
 	op_store_local   // [1] +0
@@ -37,7 +35,7 @@ const (
 
 	op_closure       // [1] +1
 	op_close_upvalue // [0] -1
-	op_init_upvalue  // ??????
+	op_init_upvalue  // [0] +0
 
 	op_structure // [0] +0
 
@@ -96,8 +94,6 @@ var op_names = [...]string{
 	op_copy_to:   "copy_to",
 	op_copy_from: "copy_from",
 
-	op_define:   "define",
-	op_undefine: "undefine",
 	op_destruct: "destruct",
 
 	op_store_local:   "store local",
@@ -179,7 +175,6 @@ func log_opcode(f *fn_proto, offset int) int {
 		op_end_catch, op_throw,
 		op_nihil, op_false, op_true,
 		op_copy_to, op_copy_from,
-		op_define, op_undefine,
 		op_close_upvalue,
 		op_structure,
 		op_define_key, op_define_key_spread,

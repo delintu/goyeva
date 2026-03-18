@@ -107,8 +107,8 @@ func (f *fn_proto) add_fn(fp *fn_proto) int {
 type upvalue struct {
 	abs_loc int
 	ref     *[]yv_value
-	fr_idx  int
 	clsd    yv_value
+	is_init bool
 	up2     up2
 }
 
@@ -118,24 +118,15 @@ type up2_name = yv_string
 
 const upvalue_is_closed = -1
 
-// remove initc -> use op_init_upvalue
-func (u *upvalue) is_init(e *executor) bool {
-	if u.abs_loc != upvalue_is_closed {
-		fr := e.call_stack[u.fr_idx]
-		return fr.initc > u.abs_loc-fr.slots
-	} else {
-		return true
-	}
-}
-
 func (u *upvalue) close() {
 	u.clsd = (*u.ref)[u.abs_loc]
 	u.abs_loc = upvalue_is_closed
 	u.ref = nil
+	u.up2 = nil
 }
 
 func (u *upvalue) store(e *executor, v yv_value) yv_value {
-	if !u.is_init(e) {
+	if !u.is_init {
 		switch up2 := u.up2.(type) {
 		case up2_open:
 			(*u.ref)[up2] = v
@@ -153,7 +144,7 @@ func (u *upvalue) store(e *executor, v yv_value) yv_value {
 }
 
 func (u *upvalue) load(e *executor) (yv_value, yv_value) {
-	if !u.is_init(e) {
+	if !u.is_init {
 		switch up2 := u.up2.(type) {
 		case up2_open:
 			return (*u.ref)[up2], nil
