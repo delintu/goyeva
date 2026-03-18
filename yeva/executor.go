@@ -326,6 +326,18 @@ func (e *executor) execute(cls *yv_closure) {
 		case op_undefine:
 			fr.undefine_local()
 			e.pop()
+		case op_destruct:
+			c := int(fr.read_byte())
+			d := e.pop()
+			if s, ok := d.(*yv_structure); ok {
+				for i := range c {
+					k := e.peek(-1 - i)
+					e.stack[len(e.stack)-1-i] = s.load(k)
+				}
+			} else {
+				e.pushf("attempt to destructure '%s'", d.typeof())
+				goto unwind
+			}
 		case op_store_local:
 			e.store_local(fr, int(fr.read_byte()), e.peek1())
 		case op_load_local:

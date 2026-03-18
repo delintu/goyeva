@@ -26,6 +26,7 @@ const (
 
 	op_define   // [0] +0
 	op_undefine // [0] -1
+	op_destruct // [1] +0
 
 	op_store_local   // [1] +0
 	op_load_local    // [1] +1
@@ -96,6 +97,7 @@ var op_names = [...]string{
 
 	op_define:   "define",
 	op_undefine: "undefine",
+	op_destruct: "destruct",
 
 	op_store_local:   "store local",
 	op_load_local:    "load local",
@@ -186,7 +188,8 @@ func log_opcode(f *fn_proto, offset int) int {
 		fmt.Printf("%-20s |%16c", name, ' ')
 		return offset + 1
 	/* byte */
-	case op_store_local, op_load_local,
+	case op_destruct,
+		op_store_local, op_load_local,
 		op_store_upvalue, op_load_upvalue,
 		op_closure,
 		op_call, op_call_spread:

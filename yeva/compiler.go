@@ -69,11 +69,49 @@ func (c *compiler) multiline_decl(f func()) {
 
 func (c *compiler) variable_decl() {
 	for {
-		c.declare_variable(c.expect_name())
-		if c.step_on(lx_equal) {
+		if c.step_on(lx_lbrace) {
+			i, kc := 0, 0
+			for {
+				i++
+				if i > math.MaxUint8 {
+					panic(unreachable)
+				}
+				if c.step_on(lx_dot) {
+					kname := c.expect_name()
+					if c.step_on(lx_equal) {
+						c.declare_variable(c.expect_name())
+					} else {
+						c.declare_variable(kname)
+					}
+					c.emit_value(yv_string(kname))
+				} else if c.step_on(lx_lbrack) {
+					c.expr(true)
+					c.expect(lx_rbrack)
+					c.expect(lx_equal)
+					c.declare_variable(c.expect_name())
+				} else {
+					c.declare_variable(c.expect_name())
+					c.emit_value(yv_number(kc))
+					kc++
+				}
+				if !c.step_on(lx_comma) {
+					break
+				}
+				if c.check(lx_rbrace) {
+					break
+				}
+			}
+			c.expect(lx_rbrace)
+			c.expect(lx_equal)
 			c.expr(false)
+			c.emit(op_destruct, uint8(i))
 		} else {
-			c.emit(op_nihil)
+			c.declare_variable(c.expect_name())
+			if c.step_on(lx_equal) {
+				c.expr(false)
+			} else {
+				c.emit(op_nihil)
+			}
 		}
 		if !c.step_on(lx_comma) {
 			break
@@ -521,7 +559,7 @@ func (c *compiler) parse_structure(can_assign bool) {
 		c.expr(false)
 		c.expect(lx_rparen)
 	} else {
-		c.emit_value(yv_nihil{})
+		c.emit(op_nihil)
 	}
 	c.emit(op_structure)
 	c.expect(lx_lbrace)

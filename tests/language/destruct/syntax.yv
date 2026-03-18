@@ -1,0 +1,10 @@
+var cKey = 3.14;
+var s = struct {
+  .a = 1,
+  .b = 2,
+  [cKey] = "pi",
+  "zero",
+};
+var { zero, .a, .b = bValue, [cKey] = cValue } = s;
+print(zero, a, bValue, cValue);
+# out: zero 1 2 pi
