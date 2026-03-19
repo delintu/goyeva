@@ -5,6 +5,7 @@ import (
 	"math"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type compile_context struct {
@@ -538,43 +539,40 @@ func (c *compiler) parse_number(can_assign bool) {
 }
 
 func (c *compiler) parse_string(can_assign bool) {
-	s := []byte(c.previous.literal[1 : len(c.previous.literal)-1])
-	r := make([]byte, 0, len(s))
-	for i, cur := range s {
+	s := []rune(c.previous.literal[1 : len(c.previous.literal)-1])
+	r := strings.Builder{}
+	for i := 0; i < len(s); i++ {
+		cur := s[i]
 		if cur == '\\' {
-			var next byte
+			var next rune
 			if i == len(s)-1 {
 				next = nul
 			} else {
 				next = s[i+1]
 			}
-			switch next {
-			case 'a':
-				slice_push(&r, '\a')
-			case 'b':
-				slice_push(&r, '\b')
-			case 'f':
-				slice_push(&r, '\f')
-			case 'n':
-				slice_push(&r, '\n')
-			case 'r':
-				slice_push(&r, '\r')
-			case 't':
-				slice_push(&r, '\t')
-			case 'v':
-				slice_push(&r, '\v')
-			case '"':
-				slice_push(&r, '"')
-			case '\\':
-				slice_push(&r, '\\')
-			default:
+			if esc, ok := escapes[next]; ok {
+				r.WriteByte(esc)
+				i++
+			} else {
 				c.error_near_previous("invalid escape")
 			}
 		} else {
-			slice_push(&r, cur)
+			r.WriteRune(cur)
 		}
 	}
-	c.emit_value(yv_string(r))
+	c.emit_value(yv_string(r.String()))
+}
+
+var escapes = map[rune]byte{
+	'a':  '\a',
+	'b':  '\b',
+	'f':  '\f',
+	'n':  '\n',
+	'r':  '\r',
+	't':  '\t',
+	'v':  '\v',
+	'"':  '"',
+	'\\': '\\',
 }
 
 func (c *compiler) parse_structure(can_assign bool) {
@@ -1180,7 +1178,7 @@ func (p *parser) step() {
 		if p.next.lx_type != lx_error {
 			break
 		}
-		p.error_near(&p.next, "%s", "")
+		p.error_near(&p.next, "%s", p.next.literal)
 	}
 }
 

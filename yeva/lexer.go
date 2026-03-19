@@ -145,9 +145,12 @@ func (l *lexer) number() lexeme {
 }
 
 func (l *lexer) string() lexeme {
-	for current := l.step(); current != '"'; current = l.step() {
-		if current == '\n' || current == nul {
+	for cur := l.step(); cur != '"'; cur = l.step() {
+		if cur == '\n' || cur == nul {
 			return l.error_lexeme("unfinished string")
+		} else if cur == '\\' &&
+			(l.current() == '"' || l.current() == '\\') {
+			l.step()
 		}
 	}
 	return l.make_lexeme(lx_string)
