@@ -21,12 +21,12 @@ struct Tree {
   },
 };
 
-var tree = Tree.new(8);
+var tree = Tree.new(9);
 
 var start = clock();
 
-for (var i = 0; i < 100; i++) {
-  if (tree->walk() != 122_068) throw "error";
+for (var i = 0; i < 10; i++) {
+  if (tree->walk() != 610_349) throw "error";
 }
 
 print(clock() - start);

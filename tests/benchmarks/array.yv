@@ -1,0 +1,31 @@
+struct Array {
+  .new(length = 0, fill) {
+    var this = struct (Array) { .length };
+    if (fill != void) {
+      for (var i = 0; i < length; i++) {
+        this[i] = fill;
+      }
+    }
+    return this;
+  },
+  ->push(value) => this[this.length++] = value,
+  ->pop() => this[--this.length],
+};
+
+var (
+  a = Array.new(1_000_000, "hello");
+  b = Array.new();
+);
+
+var start = clock();
+
+for (var i = 0; i < 10; i++) {
+  do {
+    b->push(a->pop());
+  } while (a.length > 0);
+  var t = a;
+  a = b;
+  b = t;
+}
+
+print(clock() - start);

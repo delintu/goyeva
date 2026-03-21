@@ -30,8 +30,10 @@ func (n yv_nihil) load(key yv_value) yv_value {
 }
 
 type yv_structure struct {
-	data  map[yv_value]yv_value
-	proto struct_proto
+	data   map[yv_value]yv_value
+	array  []yv_value
+	nihils int
+	proto  struct_proto
 }
 
 func new_structure(proto struct_proto) *yv_structure {
@@ -41,16 +43,47 @@ func new_structure(proto struct_proto) *yv_structure {
 	}
 }
 
+func (s *yv_structure) size() int {
+	return len(s.data) + (len(s.array) - s.nihils)
+}
+
 func (s *yv_structure) store(k yv_value, v yv_value) {
 	if is[yv_nihil](v) {
+		if idx, ok := is_index(k); ok {
+			if idx < len(s.array) {
+				if !is[yv_nihil](s.array[idx]) {
+					s.nihils++
+				}
+				s.array[idx] = v
+				return
+			}
+		}
 		delete(s.data, k)
+	} else if idx, ok := is_index(k); ok {
+		if idx == len(s.array) {
+			delete(s.data, yv_number(idx))
+			s.array = append(s.array, v)
+		} else if idx < len(s.array) {
+			if is[yv_nihil](s.array[idx]) {
+				s.nihils--
+			}
+			s.array[idx] = v
+		} else {
+			s.data[k] = v
+		}
 	} else {
 		s.data[k] = v
 	}
 }
 
 func (s *yv_structure) load(k yv_value) (v yv_value) {
-	if v, ok := s.data[k]; ok {
+	if idx, ok := is_index(k); ok && idx < len(s.array) {
+		if v := s.array[idx]; !is[yv_nihil](v) {
+			return v
+		} else {
+			return s.proto.load(k)
+		}
+	} else if v, ok := s.data[k]; ok {
 		return v
 	} else {
 		return s.proto.load(k)

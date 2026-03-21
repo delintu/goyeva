@@ -114,6 +114,21 @@ func assert2[T yv_value](v1, v2 yv_value) (T, T, bool) {
 	return v1t, v2t, true
 }
 
+func is_index(v yv_value) (int, bool) {
+	num, ok := v.(yv_number)
+	if !ok {
+		return 0, false
+	}
+	idx := int(num)
+	if num != yv_number(idx) {
+		return 0, false
+	}
+	if idx < 0 {
+		return 0, false
+	}
+	return idx, true
+}
+
 func map_has[K comparable, V any](m map[K]V, k K) bool {
 	_, ok := m[k]
 	return ok
