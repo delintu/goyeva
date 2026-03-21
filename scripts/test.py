@@ -62,6 +62,8 @@ def main(run: Run):
 
         if stderr:
             result = check_err(stderr, err)
+        elif err:
+            result = f"expected stderr: {err}"
         else:
             result = check_out(stdout, out)
 

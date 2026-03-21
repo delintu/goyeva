@@ -19,7 +19,7 @@ func new_lexer(src []byte) lexer {
 	}
 	ls.skip_shebang()
 	if dbg_lex {
-		fmt.Println(cover_string("@tokens", 30, '=') + "|")
+		fmt.Println(cover("@tokens", 30, '=') + "|")
 	}
 	return ls
 }

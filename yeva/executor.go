@@ -18,6 +18,12 @@ type call_frame struct {
 	slots   int
 }
 
+func (cf *call_frame) read_var() int {
+	v, a := decode(cf.closure.fn.code[cf.pc:])
+	cf.pc += a
+	return v
+}
+
 func (cf *call_frame) read_byte() uint8 {
 	cf.pc++
 	return cf.closure.fn.code[cf.pc-1]
@@ -37,11 +43,11 @@ func (cf *call_frame) read_long() uint32 {
 }
 
 func (cf *call_frame) read_value() yv_value {
-	return cf.closure.fn.values[cf.read_byte()]
+	return cf.closure.fn.values[cf.read_var()]
 }
 
 func (cf *call_frame) read_function() *fn_proto {
-	return cf.closure.fn.funcs[cf.read_byte()]
+	return cf.closure.fn.funcs[cf.read_var()]
 }
 
 func (cf *call_frame) read_string() yv_string {
@@ -297,7 +303,7 @@ func (e *executor) Interpret(ctx *Context, src []byte) {
 	}
 	cls := &yv_closure{fn: fn}
 	if dbg_exe {
-		fmt.Println(cover_string("@execution", 30, '=') + "|")
+		fmt.Println(cover("@execution", 30, '=') + "|")
 	}
 	if !ctx.started {
 		ctx.started = true
@@ -372,7 +378,7 @@ func (e *executor) execute() {
 		case op_copy_from:
 			e.stack[len(e.stack)-1] = e.temp
 		case op_destruct:
-			c := int(fr.read_byte())
+			c := fr.read_var()
 			d := e.pop()
 			if s, ok := d.(*yv_structure); ok {
 				for i := range c {
@@ -384,9 +390,9 @@ func (e *executor) execute() {
 				goto unwind
 			}
 		case op_store_local:
-			e.store_local(fr, int(fr.read_byte()), e.peek1())
+			e.store_local(fr, fr.read_var(), e.peek1())
 		case op_load_local:
-			e.push(e.load_local(fr, int(fr.read_byte())))
+			e.push(e.load_local(fr, fr.read_var()))
 		case op_store_name:
 			if err := e.store_global(fr.read_string(), e.peek1()); err != nil {
 				e.push(err)
@@ -400,13 +406,13 @@ func (e *executor) execute() {
 			}
 			e.push(v)
 		case op_store_upvalue:
-			err := fr.closure.upvals[fr.read_byte()].store(e, e.peek1())
+			err := fr.closure.upvals[fr.read_var()].store(e, e.peek1())
 			if err != nil {
 				e.push(err)
 				goto unwind
 			}
 		case op_load_upvalue:
-			v, err := fr.closure.upvals[fr.read_byte()].load(e)
+			v, err := fr.closure.upvals[fr.read_var()].load(e)
 			if err != nil {
 				e.push(err)
 				goto unwind
@@ -522,7 +528,7 @@ func (e *executor) execute() {
 				fr.pc += jump
 			}
 		case op_call:
-			argc := int(fr.read_byte())
+			argc := fr.read_var()
 			callee := e.peek(-1 - argc)
 			if err := e.call_value(callee, argc); err != nil {
 				e.push(err)
@@ -530,7 +536,7 @@ func (e *executor) execute() {
 			}
 			fr = e.current_frame()
 		case op_call_spread:
-			argc := int(fr.read_byte())
+			argc := fr.read_var()
 			if spr, ok := e.pop().(*yv_structure); ok {
 				var i yv_number
 				for i = 0; ; i++ {

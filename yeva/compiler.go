@@ -113,7 +113,7 @@ func (c *compiler) variable_decl() {
 			c.expect(lx_rbrace)
 			c.expect(lx_equal)
 			c.expr(false)
-			c.emit(op_destruct, uint8(i))
+			c.emit_encode(op_destruct, i)
 		} else {
 			c.declare_variable(c.expect_name())
 			if c.step_on(lx_equal) {
@@ -447,25 +447,25 @@ func (c *compiler) parse_group(can_assign bool) {
 
 func (c *compiler) parse_name(can_assign bool) {
 	var store, load op_code
-	var arg uint8
+	var arg int
 	name := c.previous.literal
 	if idx, ok := c.resolve_local(name); ok {
-		arg = uint8(idx)
+		arg = idx
 		store = op_store_local
 		load = op_load_local
 	} else if idx, ok := c.resolve_upvalue(name); ok {
-		arg = uint8(idx)
+		arg = idx
 		store = op_store_upvalue
 		load = op_load_upvalue
 	} else {
-		arg = uint8(c.fn.add_value(yv_string(name)))
+		arg = c.fn.add_value(yv_string(name))
 		store = op_store_name
 		load = op_load_name
 	}
 	c.assign(
-		func() { c.emit(store, arg) },
-		func() { c.emit(load, arg) },
-		func() { c.emit(load, arg) },
+		func() { c.emit_encode(store, arg) },
+		func() { c.emit_encode(load, arg) },
+		func() { c.emit_encode(load, arg) },
 		can_assign,
 	)
 }
@@ -497,9 +497,6 @@ func (c *compiler) add_upvalue(idx int, is_local bool) int {
 		if upv == new_upv {
 			return i
 		}
-	}
-	if len(c.fn.upvals) > math.MaxUint8 {
-		c.error_near_previous("too many captured variables")
 	}
 	slice_push(&c.fn.upvals, new_upv)
 	return len(c.fn.upvals) - 1
@@ -827,7 +824,7 @@ func (c *compiler) parse_call(can_assign bool) {
 	if is_spread {
 		op = op_call_spread
 	}
-	c.emit(op, uint8(argc))
+	c.emit_encode(op, argc)
 }
 
 func (c *compiler) parse_index(can_assign bool) {
@@ -865,9 +862,9 @@ func (c *compiler) parse_arrow(can_assign bool) {
 	c.expect(lx_lparen)
 	argc, is_spread := c.arg_list()
 	if is_spread {
-		c.emit(op_call_spread, argc+1)
+		c.emit_encode(op_call_spread, argc+1)
 	} else {
-		c.emit(op_call, argc+1)
+		c.emit_encode(op_call, argc+1)
 	}
 }
 
@@ -894,9 +891,6 @@ func (c *compiler) define_variables() {
 }
 
 func (c *compiler) add_local(name string) {
-	if len(c.locals) > math.MaxUint8 {
-		c.error_near_previous("too many local variables")
-	}
 	slice_push(&c.locals, local{
 		name:  name,
 		scope: c.scope,
@@ -909,20 +903,16 @@ func (c *compiler) emit(ops ...op_code) {
 	}
 }
 
+func (c *compiler) emit_encode(op op_code, to_dec int) {
+	c.emit(append([]op_code{op}, encode(uint(to_dec))...)...)
+}
+
 func (c *compiler) emit_value(v yv_value) {
-	i := c.fn.add_value(v)
-	if i > math.MaxUint8 {
-		c.error_near_previous("too many local values")
-	}
-	c.emit(op_value, uint8(i))
+	c.emit_encode(op_value, c.fn.add_value(v))
 }
 
 func (c *compiler) emit_closure(f *fn_proto) {
-	i := c.fn.add_fn(f)
-	if i > math.MaxUint8 {
-		c.error_near_previous("too many local functions")
-	}
-	c.emit(op_closure, uint8(i))
+	c.emit_encode(op_closure, c.fn.add_fn(f))
 }
 
 func (c *compiler) emit_return() {
@@ -1026,14 +1016,11 @@ func (c *compiler) param_list() {
 	c.expect(lx_rparen)
 }
 
-func (c *compiler) arg_list() (uint8, bool) {
+func (c *compiler) arg_list() (int, bool) {
 	var argc int = 0
 	is_spread := false
 	if !c.check(lx_rparen) {
 		for {
-			if argc+1 > math.MaxUint8 {
-				c.error_near_previous("too many arguments")
-			}
 			c.expr(false)
 			if c.step_on(lx_dot_dot_dot) {
 				is_spread = true
@@ -1050,7 +1037,7 @@ func (c *compiler) arg_list() (uint8, bool) {
 		}
 	}
 	c.expect(lx_rparen)
-	return uint8(argc), is_spread
+	return argc, is_spread
 }
 
 func (c *compiler) assign(set, get, getnp func(), can_assign bool) {

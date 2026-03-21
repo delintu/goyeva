@@ -116,7 +116,7 @@ type lexeme struct {
 func (l lexeme) String() string {
 	var lit string
 	if l.literal != "" {
-		lit = "> " + short_string(l.literal, 32)
+		lit = "> " + trim(l.literal, 32)
 	}
 	return fmt.Sprintf("%04d   | %-20s |%s", l.line, l.lx_type, lit)
 }

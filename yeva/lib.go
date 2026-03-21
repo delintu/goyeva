@@ -2,6 +2,7 @@ package yeva
 
 import (
 	"fmt"
+	"slices"
 
 	_ "embed"
 )
@@ -50,7 +51,7 @@ const (
 //go:embed embed/embed.yv
 var embed []byte
 
-func short_string(s string, l int) string {
+func trim(s string, l int) string {
 	r := []rune(s)
 	if len(r) <= l {
 		return s
@@ -58,7 +59,7 @@ func short_string(s string, l int) string {
 	return string(r[:l])
 }
 
-func cover_string(s string, w int, c rune) string {
+func cover(s string, w int, c rune) string {
 	cvr := w - (len(s) + 2)
 	if cvr < 0 {
 		return s
@@ -208,4 +209,32 @@ func u8tou32(b, mb, ms, s uint8) uint32 {
 		uint32(mb)<<16 |
 		uint32(ms)<<8 |
 		uint32(s)
+}
+
+func encode(n uint) []uint8 {
+	if n == 0 {
+		return []uint8{0}
+	}
+	var bs []uint8
+	for n > 0 {
+		bs = append(bs, uint8(n&0x7f))
+		n >>= 7
+	}
+	slices.Reverse(bs)
+	for i := range len(bs) - 1 {
+		bs[i] |= 1 << 7
+	}
+	return bs
+}
+
+func decode(b []byte) (int, int) {
+	r := 0
+	for i := range b {
+		r |= int(b[i] & 0x7f)
+		if b[i]&(1<<7) == 0 {
+			return r, i + 1
+		}
+		r <<= 7
+	}
+	return r, len(b)
 }

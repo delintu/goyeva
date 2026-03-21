@@ -19,21 +19,21 @@ const (
 	op_nihil // [0] +1
 	op_false // [0] +1
 	op_true  // [0] +1
-	op_value // [1] +1
+	op_value // [~] +1
 
 	op_copy_to   // [0] +0 (?)
 	op_copy_from // [0] +0 (?)
 
-	op_destruct // [1] +0
+	op_destruct // [~] +0
 
-	op_store_local   // [1] +0
-	op_load_local    // [1] +1
-	op_store_name    // [1] +0
-	op_load_name     // [1] +1
-	op_store_upvalue // [1] +0
-	op_load_upvalue  // [1] +1
+	op_store_local   // [~] +0
+	op_load_local    // [~] +1
+	op_store_name    // [~] +0
+	op_load_name     // [~] +1
+	op_store_upvalue // [~] +0
+	op_load_upvalue  // [~] +1
 
-	op_closure       // [1] +1
+	op_closure       // [~] +1
 	op_close_upvalue // [0] -1
 	op_init_upvalue  // [0] +0
 
@@ -69,8 +69,8 @@ const (
 	op_goto_if_false // [2] +0
 	op_goto_if_nihil // [2] +0
 
-	op_call        // [1] ~
-	op_call_spread // [1] ~
+	op_call        // [~] ~
+	op_call_spread // [~] ~
 	op_return      // [0] ~
 	op_suspend     // [0] +0
 
@@ -147,7 +147,7 @@ var op_names = [...]string{
 }
 
 func log_fn(f *fn_proto) {
-	fmt.Println(cover_string(string(f.name), 30, '=') + "|")
+	fmt.Println(cover(string(f.name), 30, '=') + "|")
 	log_fn_code(f)
 	for _, f := range f.funcs {
 		log_fn(f)
@@ -187,19 +187,22 @@ func log_opcode(f *fn_proto, offset int) int {
 		fmt.Printf("%-20s |%16c", name, ' ')
 		return offset + 1
 	/* byte */
+	/* pass */
+
+	/* constant */
+	case op_value, op_store_name, op_load_name:
+		idx, a := decode(f.code[offset+1:])
+		fmt.Printf("%-20s |> %04d %-8v ", name, idx, f.values[idx])
+		return offset + 1 + a
+	/* var */
 	case op_destruct,
 		op_store_local, op_load_local,
 		op_store_upvalue, op_load_upvalue,
 		op_closure,
 		op_call, op_call_spread:
-		idx := f.code[offset+1]
+		idx, a := decode(f.code[offset+1:])
 		fmt.Printf("%-20s |> %04d%10c", name, idx, ' ')
-		return offset + 2
-	/* constant */
-	case op_value, op_store_name, op_load_name:
-		idx := f.code[offset+1]
-		fmt.Printf("%-20s |> %04d %-8v ", name, idx, f.values[idx])
-		return offset + 2
+		return offset + 1 + a
 	/* jump */
 	case op_begin_catch, op_goto, op_goto_if_false, op_goto_if_nihil:
 		jump := int(u8tou16(f.code[offset+1], f.code[offset+2]))
