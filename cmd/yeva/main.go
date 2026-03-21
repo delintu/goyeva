@@ -46,13 +46,13 @@ func runFile(args []string) error {
 	if err != nil {
 		return fmt.Errorf("run file: %w", err)
 	}
-	yeva.New().Interpret(src)
+	yeva.New().Interpret(&yeva.Context{}, src)
 	return nil
 }
 
 func runRepl() error {
-	log.Fatal("TODO")
 	vm := yeva.New()
+	ctx := &yeva.Context{}
 	showVersion()
 	fmt.Println("exit using ctrl+c")
 	for {
@@ -64,7 +64,7 @@ func runRepl() error {
 			}
 			return fmt.Errorf("run repl: %w", err)
 		}
-		vm.Interpret(src)
+		vm.Interpret(ctx, src)
 	}
 }
 

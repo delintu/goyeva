@@ -24,7 +24,7 @@ func New() *Yeva {
 			"clock": yv_native(native_clock),
 		},
 	}
-	e.Interpret(embed)
+	e.Interpret(&Context{}, embed)
 	e.globals["assert"] = e.pop()
 	return e
 }

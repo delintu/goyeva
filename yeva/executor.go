@@ -59,6 +59,14 @@ type linked_node[T any] struct {
 	next  *linked_node[T]
 }
 
+type exe_status int
+
+const (
+	status_suspended = iota
+	status_running
+	status_dead
+)
+
 type executor struct {
 	globals        map[yv_string]yv_value
 	call_stack     []call_frame
@@ -66,6 +74,7 @@ type executor struct {
 	catch_handlers []catch_handler
 	temp           yv_value
 	open_upvals    *linked_node[*upvalue]
+	status         exe_status
 }
 
 func (e *executor) add_open_upval(loc int) *upvalue {
@@ -270,8 +279,16 @@ func (e *executor) runtime_error(format string, a ...any) {
 	os.Exit(1) /* ??? */
 }
 
-func (e *executor) Interpret(src []byte) {
-	fn := new_compiler(src).compile()
+type Context struct {
+	started bool
+	locals  []local
+}
+
+func (e *executor) Interpret(ctx *Context, src []byte) {
+	c := new_compiler(src)
+	c.locals = ctx.locals
+	fn := c.compile()
+	ctx.locals = c.locals
 	if fn == nil {
 		return
 	}
@@ -282,12 +299,21 @@ func (e *executor) Interpret(src []byte) {
 	if dbg_exe {
 		fmt.Println(cover_string("@execution", 30, '=') + "|")
 	}
-	e.execute(cls)
+	if !ctx.started {
+		ctx.started = true
+		e.push(cls)
+		e.call_closure(cls, 0)
+	} else {
+		e.stack[0] = cls
+		fr := e.current_frame()
+		fr.closure = cls
+		fr.pc = 0
+	}
+	e.execute()
 }
 
-func (e *executor) execute(cls *yv_closure) {
-	e.push(cls)
-	e.call_closure(cls, 0)
+func (e *executor) execute() {
+	e.status = status_running
 	fr := e.current_frame()
 	if dbg_exe {
 		defer func() {
@@ -533,9 +559,13 @@ func (e *executor) execute(cls *yv_closure) {
 			e.push(r)
 			slice_pop(&e.call_stack)
 			if len(e.call_stack) == 0 {
+				e.status = status_dead
 				return
 			}
 			fr = e.current_frame()
+		case op_suspend:
+			e.status = status_suspended
+			return
 		default:
 			panic(unreachable)
 		}

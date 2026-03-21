@@ -8,17 +8,6 @@ import (
 	"strings"
 )
 
-type compile_context struct {
-	lates map[string]late_bind
-}
-
-type late_bind struct {
-	info *upval_info
-
-	store_ops []int
-	load_ops  []int
-}
-
 type compiler struct {
 	*parser
 	enclosing *compiler
@@ -27,7 +16,6 @@ type compiler struct {
 	loop      *loop
 	fn        *fn_proto
 	prefix    bool_stack16
-	ctx       *compile_context
 }
 
 func new_compiler(src []byte) *compiler {
@@ -42,7 +30,6 @@ func (c *compiler) new_sub_compiler(fn_name string) *compiler {
 		parser:    c.parser,
 		enclosing: c,
 		fn:        &fn_proto{name: fn_name},
-		ctx:       c.ctx,
 	}
 }
 
@@ -467,13 +454,11 @@ func (c *compiler) parse_name(can_assign bool) {
 		store = op_store_local
 		load = op_load_local
 	} else if idx, ok := c.resolve_upvalue(name); ok {
-		// c.ctx.lates[name] = late_bind{}
 		arg = uint8(idx)
 		store = op_store_upvalue
 		load = op_load_upvalue
 	} else {
 		arg = uint8(c.fn.add_value(yv_string(name)))
-		// c.ctx.lates[name] = late_bind{}
 		store = op_store_name
 		load = op_load_name
 	}
@@ -941,7 +926,11 @@ func (c *compiler) emit_closure(f *fn_proto) {
 }
 
 func (c *compiler) emit_return() {
-	c.emit(op_nihil, op_return)
+	if c.enclosing == nil {
+		c.emit(op_suspend)
+	} else {
+		c.emit(op_nihil, op_return)
+	}
 }
 
 func (c *compiler) emit_goto(op op_code) int {

@@ -72,6 +72,7 @@ const (
 	op_call        // [1] ~
 	op_call_spread // [1] ~
 	op_return      // [0] ~
+	op_suspend     // [0] +0
 
 	op_count int = iota
 )
@@ -142,6 +143,7 @@ var op_names = [...]string{
 	op_call:        "call",
 	op_call_spread: "call_spread",
 	op_return:      "return",
+	op_suspend:     "suspend",
 }
 
 func log_fn(f *fn_proto) {
@@ -181,7 +183,7 @@ func log_opcode(f *fn_proto, offset int) int {
 		op_store_key, op_load_key,
 		op_eq, op_add, op_sub, op_mul, op_div, op_mod, op_or, op_xor, op_and,
 		op_lsh, op_rsh, op_lt, op_le, op_typeof, op_not, op_rev, op_neg, op_pos,
-		op_return:
+		op_return, op_suspend:
 		fmt.Printf("%-20s |%16c", name, ' ')
 		return offset + 1
 	/* byte */
